@@ -12,14 +12,18 @@ export const createCompiler = createCompilerCreator(function baseCompile (
   template: string,
   options: CompilerOptions
 ): CompiledResult {
+
+  // 编译器部分在这里创建了AST 抽象语法树
   const ast = parse(template.trim(), options)
   if (options.optimize !== false) {
     optimize(ast, options)
   }
+
+  // 根据AST生成的渲染函数！
   const code = generate(ast, options)
   return {
     ast,
-    render: code.render,
+    render: code.render, // 纯字符串
     staticRenderFns: code.staticRenderFns
   }
 })
