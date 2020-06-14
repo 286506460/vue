@@ -59,10 +59,17 @@ export function updateListeners (
   vm: Component
 ) {
   let name, def, cur, old, event
+  // 遍历 Listener 的属性 @select="selectHandler" ===> { select: fn () ... }
   for (name in on) {
     def = cur = on[name]
     old = oldOn[name]
-    event = normalizeEvent(name)
+    /**
+     * capture: false
+     * name: "select"
+     * once: false
+     * passive: false  
+     */
+    event = normalizeEvent(name) // 解析事件所带的何种修饰符 
     /* istanbul ignore if */
     if (__WEEX__ && isPlainObject(def)) {
       cur = def.handler
@@ -74,18 +81,21 @@ export function updateListeners (
         vm
       )
     } else if (isUndef(old)) {
+      // 如果事件名在 Old Listener 中不存在 则注册
       if (isUndef(cur.fns)) {
-        cur = on[name] = createFnInvoker(cur, vm)
+        cur = on[name] = createFnInvoker(cur, vm) // 返回了一个 invoker function 
       }
       if (isTrue(event.once)) {
         cur = on[name] = createOnceHandler(event.name, cur, event.capture)
       }
-      add(event.name, cur, event.capture, event.passive, event.params)
+      add(event.name, cur, event.capture, event.passive, event.params) // 注册 其实就是调用实例的 $on 方法
     } else if (cur !== old) {
+      // 更新事件名 name 的引用 old.fns 为最新的 cur
       old.fns = cur
       on[name] = old
     }
   }
+  // 遍历 oldOn 移除在 on 中不存在的事件名
   for (name in oldOn) {
     if (isUndef(on[name])) {
       event = normalizeEvent(name)

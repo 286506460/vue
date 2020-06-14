@@ -20,6 +20,7 @@ import platformDirectives from './directives/index'
 import platformComponents from './components/index'
 
 // install platform specific utils
+// 安装平台相关的工具方法
 Vue.config.mustUseProp = mustUseProp
 Vue.config.isReservedTag = isReservedTag
 Vue.config.isReservedAttr = isReservedAttr
@@ -27,13 +28,16 @@ Vue.config.getTagNamespace = getTagNamespace
 Vue.config.isUnknownElement = isUnknownElement
 
 // install platform runtime directives & components
-extend(Vue.options.directives, platformDirectives)
-extend(Vue.options.components, platformComponents)
+// 安装平台相关指令和组件
+extend(Vue.options.directives, platformDirectives) // v-show v-model
+extend(Vue.options.components, platformComponents) // Transition TransitionGroup
 
 // install platform patch function
+// 安装平台的 patch 方法，这里判断 inBrowser 应该是只考虑在 window 拥有 dom 的环境
 Vue.prototype.__patch__ = inBrowser ? patch : noop
 
 // public mount method
+// 被 entry-runtime-with-compiler.js 扩展的 $mount 方法
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean

@@ -52,11 +52,11 @@ export function _createElement (
   normalizationType?: number
 ): VNode | Array<VNode> {
   if (isDef(data) && isDef((data: any).__ob__)) {
-    process.env.NODE_ENV !== 'production' && warn(
-      `Avoid using observed data object as vnode data: ${JSON.stringify(data)}\n` +
-      'Always create fresh vnode data objects in each render!',
-      context
-    )
+    // process.env.NODE_ENV !== 'production' && warn(
+    //   `Avoid using observed data object as vnode data: ${JSON.stringify(data)}\n` +
+    //   'Always create fresh vnode data objects in each render!',
+    //   context
+    // )
     return createEmptyVNode()
   }
   // object syntax in v-bind
@@ -88,8 +88,10 @@ export function _createElement (
     children.length = 0
   }
   if (normalizationType === ALWAYS_NORMALIZE) {
+    // 如果 children 是 string / number / symbol / boolean 其中一种则创建 [createTextVNode(children)]
     children = normalizeChildren(children)
   } else if (normalizationType === SIMPLE_NORMALIZE) {
+    // 打平成数组，深度一层
     children = simpleNormalizeChildren(children)
   }
   let vnode, ns

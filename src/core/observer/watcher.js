@@ -163,11 +163,12 @@ export default class Watcher {
    */
   update () {
     /* istanbul ignore else */
-    if (this.lazy) {
+    if (this.lazy) { // 计算属性
       this.dirty = true
-    } else if (this.sync) {
+    } else if (this.sync) { // 强制同步更新
       this.run()
     } else {
+      // watcher 入队
       queueWatcher(this)
     }
   }
@@ -178,6 +179,7 @@ export default class Watcher {
    */
   run () {
     if (this.active) {
+      // updateComponent()
       const value = this.get()
       if (
         value !== this.value ||

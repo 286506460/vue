@@ -28,14 +28,24 @@ export function initRender (vm: Component) {
   // so that we get proper render context inside it.
   // args order: tag, data, children, normalizationType, alwaysNormalize
   // internal version is used by render functions compiled from templates
+  /**
+   * 默认编译器已经生成 render 时，如 with(this){return _c('div',[_c('h1',[_v("Vue")])])}
+   */
   vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false)
   // normalization is always applied for the public version, used in
   // user-written render functions.
+  /**
+   * 一般用于用户手写 render Function 的场景
+   */
   vm.$createElement = (a, b, c, d) => createElement(vm, a, b, c, d, true)
 
   // $attrs & $listeners are exposed for easier HOC creation.
   // they need to be reactive so that HOCs using them are always updated
   const parentData = parentVnode && parentVnode.data
+
+  /**
+   * 为了更早的创建 HOC 高阶组件，所以要对 $attrs & $listeners 做响应式处理，以便当使用它们是保持最新
+   */
 
   /* istanbul ignore else */
   if (process.env.NODE_ENV !== 'production') {

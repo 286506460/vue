@@ -27,6 +27,7 @@ import {
   isServerRendering,
   isReservedAttribute
 } from '../util/index'
+import { Z_ASCII } from 'zlib'
 
 const sharedPropertyDefinition = {
   enumerable: true,
@@ -62,19 +63,23 @@ export function initState (vm: Component) {
 }
 
 function initProps (vm: Component, propsOptions: Object) {
-  const propsData = vm.$options.propsData || {}
-  const props = vm._props = {}
+  const propsData = vm.$options.propsData || {} // 传入的 props
+  const props = vm._props = {} // 指向 vm._props 的指针
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
-  const keys = vm.$options._propKeys = []
+  /**
+   * 如果 props 发生变化，使用数组的方式取代动态枚举对象属性迭代 key 可能是处于性能考虑
+   */
+  const keys = vm.$options._propKeys = [] // 缓存 props 的 key
   const isRoot = !vm.$parent
   // root instance props should be converted
+  // 根组件的 props 已经响应式转化完 why？
   if (!isRoot) {
     toggleObserving(false)
   }
   for (const key in propsOptions) {
-    keys.push(key)
-    const value = validateProp(key, propsOptions, propsData, vm)
+    keys.push(key) // prop key 加入缓存中
+    const value = validateProp(key, propsOptions, propsData, vm) // 校验传入的 prop value 类型是否匹配
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
       const hyphenatedKey = hyphenate(key)
@@ -97,11 +102,14 @@ function initProps (vm: Component, propsOptions: Object) {
         }
       })
     } else {
-      defineReactive(props, key, value)
+      defineReactive(props, key, value) // 转化响应式 添加到 vm._props
     }
     // static props are already proxied on the component's prototype
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
+    /**
+     * 判断当前 key vm.key 在实例中是否存在，如果不存在则添加一个代理，vm[key] ===> vm._props[key]
+     */
     if (!(key in vm)) {
       proxy(vm, `_props`, key)
     }
@@ -114,6 +122,7 @@ function initData (vm: Component) {
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
+  // 校验 data 返回值是否为对象
   if (!isPlainObject(data)) {
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
@@ -127,8 +136,10 @@ function initData (vm: Component) {
   const props = vm.$options.props
   const methods = vm.$options.methods
   let i = keys.length
+  // 遍历 data key
   while (i--) {
     const key = keys[i]
+    // data key 不可以和 props 和 methods 中的 key 重名
     if (process.env.NODE_ENV !== 'production') {
       if (methods && hasOwn(methods, key)) {
         warn(
@@ -144,11 +155,11 @@ function initData (vm: Component) {
         vm
       )
     } else if (!isReserved(key)) {
-      proxy(vm, `_data`, key)
+      proxy(vm, `_data`, key) // 添加 key 的代理到 vm _data 以后可以 vm.key 访问
     }
   }
   // observe data
-  observe(data, true /* asRootData */)
+  observe(data, true /* asRootData */) // 响应式处理 data key
 }
 
 export function getData (data: Function, vm: Component): any {
@@ -168,12 +179,14 @@ const computedWatcherOptions = { lazy: true }
 
 function initComputed (vm: Component, computed: Object) {
   // $flow-disable-line
+  // 定义 _computedWatchers 计算属性相关的 watchers
   const watchers = vm._computedWatchers = Object.create(null)
   // computed properties are just getters during SSR
   const isSSR = isServerRendering()
 
   for (const key in computed) {
     const userDef = computed[key]
+    // 计算属可以是 function 或者包含 get 的对象
     const getter = typeof userDef === 'function' ? userDef : userDef.get
     if (process.env.NODE_ENV !== 'production' && getter == null) {
       warn(
@@ -184,6 +197,7 @@ function initComputed (vm: Component, computed: Object) {
 
     if (!isSSR) {
       // create internal watcher for the computed property.
+      // 为计算属性创建 watcher
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -195,6 +209,7 @@ function initComputed (vm: Component, computed: Object) {
     // component-defined computed properties are already defined on the
     // component prototype. We only need to define computed properties defined
     // at instantiation here.
+    // 如果 key 在 vm 上不存在，则为 vm 设置计算属性
     if (!(key in vm)) {
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
@@ -212,13 +227,16 @@ export function defineComputed (
   key: string,
   userDef: Object | Function
 ) {
-  const shouldCache = !isServerRendering()
+  const shouldCache = !isServerRendering() // 是否缓存，非 SSR 下是 true
+  // sharedPropertyDefinition 属性描述符 descriptor => Object.defineProperty(obj, prop, descriptor)
   if (typeof userDef === 'function') {
+    // 如果用户写的 computed 是 function 则调用 createComputedGetter 去定义属性描述符的 get
     sharedPropertyDefinition.get = shouldCache
       ? createComputedGetter(key)
       : createGetterInvoker(userDef)
     sharedPropertyDefinition.set = noop
   } else {
+    // 如果是对象 则取 get
     sharedPropertyDefinition.get = userDef.get
       ? shouldCache && userDef.cache !== false
         ? createComputedGetter(key)
@@ -235,13 +253,22 @@ export function defineComputed (
       )
     }
   }
+  // 为当前实例 vm 定为 key 的计算属性
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
+/**
+ * 使用时 获取计算属性的值
+ * @param {*} key 
+ */
+
 function createComputedGetter (key) {
   return function computedGetter () {
+    // 取出当前计算属性 key 的 watcher
     const watcher = this._computedWatchers && this._computedWatchers[key]
     if (watcher) {
+      // watcher dirty 为 true 证明依赖更新了，要重新计算。
+      // 依赖更新会触发 watcher update 会把 watcher dirty 设置为 true
       if (watcher.dirty) {
         watcher.evaluate()
       }
@@ -261,6 +288,7 @@ function createGetterInvoker(fn) {
 
 function initMethods (vm: Component, methods: Object) {
   const props = vm.$options.props
+  // 遍历 methods 的 key 如果 value 是函数则 bind 当前 vm 上下文，然后添加到 vm[key]
   for (const key in methods) {
     if (process.env.NODE_ENV !== 'production') {
       if (typeof methods[key] !== 'function') {
@@ -287,6 +315,11 @@ function initMethods (vm: Component, methods: Object) {
   }
 }
 
+/**
+ * 在 vm 定义 key 的 watcher
+ * @param {*} vm 
+ * @param {*} watch 
+ */
 function initWatch (vm: Component, watch: Object) {
   for (const key in watch) {
     const handler = watch[key]

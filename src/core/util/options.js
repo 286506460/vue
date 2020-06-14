@@ -406,6 +406,7 @@ export function mergeOptions (
   // but only if it is a raw options object that isn't
   // the result of another mergeOptions call.
   // Only merged options has the _base property.
+  // 递归把 options 中的 extends 和 mixins 合并到 vm.$options 中
   if (!child._base) {
     if (child.extends) {
       parent = mergeOptions(parent, child.extends, vm)
@@ -419,14 +420,17 @@ export function mergeOptions (
 
   const options = {}
   let key
+  // parent 上所有的属性直接合
   for (key in parent) {
     mergeField(key)
   }
+  // child 里的属性，如果 parent 没有就合并
   for (key in child) {
     if (!hasOwn(parent, key)) {
       mergeField(key)
     }
   }
+  // strats 存储各种属性的合并策略 策略模式！
   function mergeField (key) {
     const strat = strats[key] || defaultStrat
     options[key] = strat(parent[key], child[key], vm, key)

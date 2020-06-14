@@ -33,15 +33,16 @@ export function initLifecycle (vm: Component) {
   const options = vm.$options
 
   // locate first non-abstract parent
+  // 有父组件且不是 keep-alive 或 transition
   let parent = options.parent
   if (parent && !options.abstract) {
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
-    parent.$children.push(vm)
+    parent.$children.push(vm) // 把自己 push 到父组件的 $children
   }
 
-  vm.$parent = parent
+  vm.$parent = parent // 把父组件赋值给当前组件 $parent
   vm.$root = parent ? parent.$root : vm
 
   vm.$children = []

@@ -86,6 +86,7 @@ function flushSchedulerQueue () {
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
   for (index = 0; index < queue.length; index++) {
+    // 每次拿出一个 watcher
     watcher = queue[index]
     if (watcher.before) {
       watcher.before()
@@ -163,6 +164,7 @@ function callActivatedHooks (queue) {
  */
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
+  // 不存在才入队伍，去重
   if (has[id] == null) {
     has[id] = true
     if (!flushing) {
@@ -184,6 +186,7 @@ export function queueWatcher (watcher: Watcher) {
         flushSchedulerQueue()
         return
       }
+      // 异步执行 flushSchedulerQueue
       nextTick(flushSchedulerQueue)
     }
   }

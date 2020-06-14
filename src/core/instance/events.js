@@ -13,6 +13,7 @@ export function initEvents (vm: Component) {
   vm._events = Object.create(null)
   vm._hasHookEvent = false
   // init parent attached events
+  // 在父组件注册的事件 如 @select="selectHandler" 中的 @select
   const listeners = vm.$options._parentListeners
   if (listeners) {
     updateComponentListeners(vm, listeners)
@@ -39,12 +40,19 @@ function createOnceHandler (event, fn) {
   }
 }
 
+/**
+ * 更新组件 Listener
+ * @param {*} vm 
+ * @param {*} listeners 
+ * @param {*} oldListeners 
+ */
 export function updateComponentListeners (
   vm: Component,
   listeners: Object,
   oldListeners: ?Object
 ) {
   target = vm
+  // 更新 Listener
   updateListeners(listeners, oldListeners || {}, add, remove, createOnceHandler, vm)
   target = undefined
 }
