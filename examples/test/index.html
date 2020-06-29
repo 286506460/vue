@@ -7,52 +7,33 @@
 </head>
 <body>
   <div id="app">
-    {{msg}}
-    <world  @select="selectHandler" @click.native="clickHandler"></world>
+    {{msg.a}}
+    {{msg.a}}
+    {{msg.b}}
   </div>
-  <script type="">
-    Vue.component('world', {
-      // template: `<h1 @click="handleClick">{{ name }}</h1>`,
-      data () {
-        return { name: 'World' }
-      },
-      inject: ['foo'],
-      methods: {
-        handleClick () {
-          this.$emit('select')
-          // this.$emit('clickHandler')
-        }
-      },
-      render: function (h, params) {
-        console.log(this)
-        return h(
-          'h1',
-          {
-            on:{
-              click: this.handleClick
-            }
-          },
-          this.name
-        )
-      }
-    })
-    new Vue({
+  <script>
+    // const hello = Vue.component('hello', {
+    //   template: `<h1>{{ name }}</h1>`,
+    //   data () {
+    //     return {
+    //       name: ['vue', 'react']
+    //     }
+    //   }
+    // })
+    const vm = new Vue({
       data: {
-        msg: 'Hello'
-      },
-      provide: {
-        foo: 'bar'
-      },
-      methods: {
-        selectHandler () {
-          console.log('selectHandler')
-          return Promise.resolve('aaa')
-        },
-        clickHandler () {
-          console.log('clickHandler')
+        msg: {
+          a: 1,
+          b: 2
         }
-      }
+      },
+      // methods: {
+      //   changeMsg () {
+      //     this.msg += 1
+      //   }
+      // }
     }).$mount('#app')
+    console.log(vm)
   </script>
 </body>
 </html>

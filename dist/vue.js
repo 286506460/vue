@@ -728,6 +728,7 @@
 
   Dep.prototype.depend = function depend () {
     if (Dep.target) {
+      // 实际就是 watcher.addDep 把当前 dep 添加到 watcher
       Dep.target.addDep(this);
     }
   };
@@ -754,8 +755,8 @@
   var targetStack = [];
 
   function pushTarget (target) {
-    targetStack.push(target);
-    Dep.target = target;
+    targetStack.push(target); // 恢复用
+    Dep.target = target; // 当前 watcher
   }
 
   function popTarget () {
@@ -924,15 +925,20 @@
     this.value = value;
     this.dep = new Dep();
     this.vmCount = 0;
+    // 添加 __ob__ 如 vm._data.__ob__
     def(value, '__ob__', this);
-    if (Array.isArray(value)) {
+    if (Array.isArray(value)) { // 如果是数组 name: ['vue', 'react']
       if (hasProto) {
+        // 环境可以使用 __proto__ 就把重写的数组方法覆盖 value 的 __proto__ target.__proto__ = src
         protoAugment(value, arrayMethods);
       } else {
+        // 不支持就给 value 用 defineProperty 定义重写的数组方法 def(target, key, src[key])
         copyAugment(value, arrayMethods, arrayKeys);
       }
+      // 遍历数组元素再次 observe(items[i])
       this.observeArray(value);
     } else {
+      // 把对象的 key 通过 getter/setters 转成响应式
       this.walk(value);
     }
   };
@@ -992,6 +998,7 @@
       return
     }
     var ob;
+    // 为了保证对于一个双绑对象（如 data）只有一个 observe 单例
     if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
       ob = value.__ob__;
     } else if (
@@ -1001,6 +1008,7 @@
       Object.isExtensible(value) &&
       !value._isVue
     ) {
+      // 创建 Observer 实例 如 data
       ob = new Observer(value);
     }
     if (asRootData && ob) {
@@ -1019,7 +1027,7 @@
     customSetter,
     shallow
   ) {
-    var dep = new Dep();
+    var dep = new Dep(); // 依赖
 
     var property = Object.getOwnPropertyDescriptor(obj, key);
     if (property && property.configurable === false) {
@@ -1039,6 +1047,7 @@
       configurable: true,
       get: function reactiveGetter () {
         var value = getter ? getter.call(obj) : val;
+        // 发生数据访问时，如果 Dep.target 存在，那么 Dep.target 就是当前渲染 watcher
         if (Dep.target) {
           dep.depend();
           if (childOb) {
@@ -1068,7 +1077,7 @@
           val = newVal;
         }
         childOb = !shallow && observe(newVal);
-        dep.notify();
+        dep.notify(); // dep 通知所有组件 watcher
       }
     });
   }
@@ -4116,6 +4125,12 @@
     // we set this to vm._watcher inside the watcher's constructor
     // since the watcher's initial patch may call $forceUpdate (e.g. inside child
     // component's mounted hook), which relies on vm._watcher being already defined
+
+    /**
+     * 创建组件渲染 watcher 并完成依赖收集
+     * watcher 调用 updateComponent 进而调用 _render 触发了数据访问
+     * 数据的 getter 中的都有 dep，dep 会把当前 watcher 订阅到该 dep 的 subs 中
+     */
     new Watcher(vm, updateComponent, noop, {
       before: function before () {
         if (vm._isMounted && !vm._isDestroyed) {
@@ -4342,6 +4357,9 @@
     //    user watchers are created before the render watcher)
     // 3. If a component is destroyed during a parent component's watcher run,
     //    its watchers can be skipped.
+    // 1. 组件是从父到子更新，因为父组件先与子组件创建
+    // 2. 用户使用的 watcher api 优先于组件的渲染 watcher，因为是在渲染 watcher 之前创建的
+    // 3. 如果一个组件在父组件 watcher 执行时被销毁，则该组件的 watcher 将被跳过
     queue.sort(function (a, b) { return a.id - b.id; });
 
     // do not cache length because more watchers might be pushed
@@ -4350,7 +4368,7 @@
       // 每次拿出一个 watcher
       watcher = queue[index];
       if (watcher.before) {
-        watcher.before();
+        watcher.before(); // callHook(vm, 'beforeUpdate')
       }
       id = watcher.id;
       has[id] = null;
@@ -4520,10 +4538,12 @@
    * Evaluate the getter, and re-collect dependencies.
    */
   Watcher.prototype.get = function get () {
+    // 当前 watcher 赋值给 Dep.target 
     pushTarget(this);
     var value;
     var vm = this.vm;
     try {
+      // src/core/instance/lifecycle.js => updateComponent 触发了数据 getter 中 dep
       value = this.getter.call(vm, vm);
     } catch (e) {
       if (this.user) {
@@ -4552,6 +4572,7 @@
       this.newDepIds.add(id);
       this.newDeps.push(dep);
       if (!this.depIds.has(id)) {
+        // 把当前 dep 添加到 watcher
         dep.addSub(this);
       }
     }
@@ -4585,7 +4606,7 @@
   Watcher.prototype.update = function update () {
     /* istanbul ignore else */
     if (this.lazy) { // 计算属性
-      this.dirty = true;
+      this.dirty = true; // 依赖变化 计算属性需要重新计算
     } else if (this.sync) { // 强制同步更新
       this.run();
     } else {
@@ -4600,7 +4621,8 @@
    */
   Watcher.prototype.run = function run () {
     if (this.active) {
-      // updateComponent()
+      // 对于渲染 watcher 来说 => this.getter.call(vm, vm) => updateComponent => 重新生成渲染函数并进行 patch
+      // updateComponent 会触发 getter 重新添加 watcher
       var value = this.get();
       if (
         value !== this.value ||
@@ -4689,7 +4711,7 @@
     if (opts.props) { initProps(vm, opts.props); }
     if (opts.methods) { initMethods(vm, opts.methods); }
     if (opts.data) {
-      initData(vm);
+      initData(vm); // 初始化 Data
     } else {
       observe(vm._data = {}, true /* asRootData */);
     }

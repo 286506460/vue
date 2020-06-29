@@ -99,10 +99,12 @@ export default class Watcher {
    * Evaluate the getter, and re-collect dependencies.
    */
   get () {
+    // 当前 watcher 赋值给 Dep.target 
     pushTarget(this)
     let value
     const vm = this.vm
     try {
+      // src/core/instance/lifecycle.js => updateComponent 触发了数据 getter 中 dep
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
@@ -131,6 +133,7 @@ export default class Watcher {
       this.newDepIds.add(id)
       this.newDeps.push(dep)
       if (!this.depIds.has(id)) {
+        // 把当前 dep 添加到 watcher
         dep.addSub(this)
       }
     }
@@ -164,7 +167,7 @@ export default class Watcher {
   update () {
     /* istanbul ignore else */
     if (this.lazy) { // 计算属性
-      this.dirty = true
+      this.dirty = true // 依赖变化 计算属性需要重新计算
     } else if (this.sync) { // 强制同步更新
       this.run()
     } else {
@@ -179,8 +182,10 @@ export default class Watcher {
    */
   run () {
     if (this.active) {
-      // updateComponent()
+      // 对于渲染 watcher 来说 => this.getter.call(vm, vm) => updateComponent => 重新生成渲染函数并进行 patch
+      // updateComponent 会触发 getter 重新添加 watcher
       const value = this.get()
+      // 用户 watcher 会有返回值，再执行下面
       if (
         value !== this.value ||
         // Deep watchers and watchers on Object/Arrays should fire even

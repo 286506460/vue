@@ -43,15 +43,20 @@ export class Observer {
     this.value = value
     this.dep = new Dep()
     this.vmCount = 0
+    // 添加 __ob__ 如 vm._data.__ob__
     def(value, '__ob__', this)
-    if (Array.isArray(value)) {
+    if (Array.isArray(value)) { // 如果是数组 name: ['vue', 'react']
       if (hasProto) {
+        // 环境可以使用 __proto__ 就把重写的数组方法覆盖 value 的 __proto__ target.__proto__ = src
         protoAugment(value, arrayMethods)
       } else {
+        // 不支持就给 value 用 defineProperty 定义重写的数组方法 def(target, key, src[key])
         copyAugment(value, arrayMethods, arrayKeys)
       }
+      // 遍历数组元素再次 observe(items[i])
       this.observeArray(value)
     } else {
+      // 把对象的 key 通过 getter/setters 转成响应式
       this.walk(value)
     }
   }
@@ -112,6 +117,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     return
   }
   let ob: Observer | void
+  // 为了保证对于一个双绑对象（如 data）只有一个 observe 单例
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   } else if (
@@ -121,6 +127,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     Object.isExtensible(value) &&
     !value._isVue
   ) {
+    // 创建 Observer 实例 如 data
     ob = new Observer(value)
   }
   if (asRootData && ob) {
@@ -139,7 +146,7 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
-  const dep = new Dep()
+  const dep = new Dep() // 依赖
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
   if (property && property.configurable === false) {
@@ -159,6 +166,7 @@ export function defineReactive (
     configurable: true,
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
+      // 发生数据访问时，如果 Dep.target 存在，那么 Dep.target 就是当前渲染 watcher
       if (Dep.target) {
         dep.depend()
         if (childOb) {
@@ -188,7 +196,7 @@ export function defineReactive (
         val = newVal
       }
       childOb = !shallow && observe(newVal)
-      dep.notify()
+      dep.notify() // dep 通知所有组件 watcher
     }
   })
 }

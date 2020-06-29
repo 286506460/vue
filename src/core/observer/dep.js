@@ -30,6 +30,8 @@ export default class Dep {
 
   depend () {
     if (Dep.target) {
+      // 实际就是 watcher.addDep 把当前 dep 添加到 watcher
+      // watcher.addDep 也会调用 dep.addSub(this) 把 watcher 添加到 dep 中
       Dep.target.addDep(this)
     }
   }
@@ -57,8 +59,8 @@ Dep.target = null
 const targetStack = []
 
 export function pushTarget (target: ?Watcher) {
-  targetStack.push(target)
-  Dep.target = target
+  targetStack.push(target) // 恢复用
+  Dep.target = target // 当前 watcher
 }
 
 export function popTarget () {

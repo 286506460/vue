@@ -52,7 +52,7 @@ export function initState (vm: Component) {
   if (opts.props) initProps(vm, opts.props)
   if (opts.methods) initMethods(vm, opts.methods)
   if (opts.data) {
-    initData(vm)
+    initData(vm) // 初始化 Data
   } else {
     observe(vm._data = {}, true /* asRootData */)
   }
